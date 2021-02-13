@@ -23,7 +23,7 @@ def run(args):
     feat_model = load_feat_model(args, strategy)
 
     for ds_id in args.ds_ids:
-        class_transfer_learn(args, strategy, feat_model, ds_id, args.downstream_path)
+        class_transfer_learn(args, strategy, feat_model, ds_id)
 
     logging.info('clearing local log folder')
     shutil.rmtree('./logs', ignore_errors=True)
