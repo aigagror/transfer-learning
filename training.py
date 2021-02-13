@@ -9,11 +9,13 @@ from data import load_ds, class_supervise, postprocess
 from models import load_feat_model
 
 
-def lr_scheduler(epoch, lr, decays):
+def lr_scheduler(args, epoch, lr):
     # Epoch is 0-indexed
-    if epoch in decays:
-        lr *= 0.1
-    return lr
+    curr_lr = args.lr
+    for e in range(epoch):
+        if e in args.lr_decays:
+            curr_lr *= 0.1
+    return curr_lr
 
 
 def extract_features(ds, feat_model):
@@ -62,7 +64,7 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     callbacks = [
         tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
         tf.keras.callbacks.LearningRateScheduler(
-            partial(lr_scheduler, decays=args.lr_decays)
+            partial(lr_scheduler, args=args)
         )
     ]
     classifier.fit(ds_feat_train.repeat(), validation_data=ds_feat_val,
