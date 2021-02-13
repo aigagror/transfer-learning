@@ -9,7 +9,7 @@ from data import load_ds, class_supervise, postprocess
 from models import load_feat_model
 
 
-def lr_scheduler(args, epoch, lr):
+def lr_scheduler(epoch, lr, args):
     # Epoch is 0-indexed
     curr_lr = args.lr
     for e in range(epoch):
