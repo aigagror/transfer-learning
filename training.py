@@ -58,9 +58,9 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
                            metrics='acc', steps_per_execution=100)
 
     # Train the classifier
+    task_path = os.path.join(args.downstream_path, ds_id)
     callbacks = [
-        tf.keras.callbacks.TensorBoard(os.path.join(args.downstream_path, ds_id),
-                                       write_graph=False, profile_batch=0),
+        tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
         tf.keras.callbacks.LearningRateScheduler(
             partial(lr_scheduler, decays=args.lr_decays)
         )
@@ -72,7 +72,7 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     classifier_metrics = classifier.evaluate(ds_feat_val)
 
     # Save the classifer
-    classifier.save(os.path.join(args.downstream_path, 'classifier'))
+    classifier.save(os.path.join(task_path, 'classifier'))
 
     # Create the transfer model
     clone_feat_model = load_feat_model(args, strategy)
@@ -94,4 +94,4 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
                        callbacks=callbacks)
 
     # Save the transfer model
-    transfer_model.save(os.path.join(args.downstream_path, 'transfer_model'))
+    transfer_model.save(os.path.join(task_path, 'transfer_model'))
