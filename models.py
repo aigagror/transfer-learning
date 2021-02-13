@@ -3,7 +3,6 @@ import logging
 import tensorflow as tf
 
 
-
 def load_feat_model(args, strategy):
     logging.info('loading base model')
     with strategy.scope():
