@@ -80,7 +80,8 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
         clone_feat_model.trainable = True
         output = classifier(clone_feat_model.output)
         transfer_model = tf.keras.Model(clone_feat_model.input, output)
-        transfer_model.compile(loss='sparse_categorical_crossentropy',
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+        transfer_model.compile(optimizer, loss='sparse_categorical_crossentropy',
                                metrics='acc', steps_per_execution=50)
 
     # Verify the accuracy of the transfer model
