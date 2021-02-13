@@ -24,6 +24,7 @@ def run(args):
 
     tensorboard_cmd = "tensorboard dev upload " \
                       "--logdir logs " \
-                      f"--name '{args.loss}, {args.data_id}, {args.backbone}' " \
+                      f"--name '{args.train_path}' " \
+                      f"--description '{args}' " \
                       "--one_shot"
     return tensorboard_cmd

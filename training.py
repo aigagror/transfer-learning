@@ -85,7 +85,7 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
 
     # Verify the accuracy of the transfer model
     transfer_metrics = transfer_model.evaluate(ds_class_val)
-    # tf.debugging.assert_near(transfer_metrics, classifier_metrics)
+    tf.debugging.assert_near(transfer_metrics, classifier_metrics)
 
     # Train the whole transfer model
     transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
