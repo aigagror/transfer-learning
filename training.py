@@ -78,12 +78,10 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     classifier.save(os.path.join(task_path, 'classifier'))
 
     # Create the transfer model
-    tf.keras.backend.clear_session()
     clone_feat_model = load_feat_model(args, strategy)
     with strategy.scope():
         clone_feat_model.trainable = True
-        clone_classifier = tf.keras.models.load_model(os.path.join(task_path, 'classifier'), compile=False)
-        output = clone_classifier(clone_feat_model.output)
+        output = classifier(clone_feat_model.output)
         transfer_model = tf.keras.Model(clone_feat_model.input, output)
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=50)
