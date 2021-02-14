@@ -18,18 +18,7 @@ def lr_scheduler(epoch, lr, args):
     return curr_lr
 
 
-def extract_features(ds, feat_model):
-    # Get the corresponding features for each image
-    feats = tf.data.Dataset.from_tensor_slices(feat_model.predict(ds.batch(1024)))
-
-    # Create feature, label dataset
-    labels = ds.map(lambda x, y: y)
-    ds_feats = tf.data.Dataset.zip((feats, labels))
-
-    return ds_feats
-
-
-def class_transfer_learn(args, strategy, feat_model, ds_id):
+def class_transfer_learn(args, strategy, ds_id):
     # Load dataset
     ds_train, ds_val, info = load_ds(args, ds_id)
     nclass = info.features['label'].num_classes
@@ -39,25 +28,21 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     # Map to classification format
     ds_class_train, ds_class_val = ds_train.map(class_supervise), ds_val.map(class_supervise)
 
-    # Map images to features
-    ds_feat_train = extract_features(ds_class_train, feat_model)
-    ds_feat_val = extract_features(ds_class_val, feat_model)
-
     # Postprocess
     ds_class_train = postprocess(args, ds_class_train)
     ds_class_val = postprocess(args, ds_class_val)
-    ds_feat_train = postprocess(args, ds_feat_train)
-    ds_feat_val = postprocess(args, ds_feat_val)
 
-    # Make classifier
+    # Make transfer model
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
-        classifier = tf.keras.Sequential([
-            tf.keras.Input([2048]),
-            tf.keras.layers.Dense(nclass)
-        ])
+        feat_model = load_feat_model(args, trainable=False)
+        output = tf.keras.layers.Dense(nclass)(feat_model.output)
+        transfer_model = tf.keras.Model(feat_model.input, output)
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-        classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+        transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+
+    if args.log_level == 'DEBUG':
+        transfer_model.summary()
 
     # Train the classifier
     task_path = os.path.join(args.downstream_path, ds_id)
@@ -68,31 +53,13 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
             verbose=1 if args.log_level == 'DEBUG' else 0
         )
     ]
-    classifier.fit(ds_feat_train.repeat(), validation_data=ds_feat_val,
-                   epochs=args.finetune_epoch or args.epochs,
-                   steps_per_epoch=args.epoch_steps,
-                   callbacks=callbacks)
-    classifier_metrics = classifier.evaluate(ds_feat_val)
-
-    # Save the classifer
-    classifier.save(os.path.join(task_path, 'classifier'))
-
-    # Create the transfer model
-    clone_feat_model = load_feat_model(args, strategy)
-    with strategy.scope():
-        clone_feat_model.trainable = True
-        output = classifier(clone_feat_model.output)
-        transfer_model = tf.keras.Model(clone_feat_model.input, output)
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-        transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=50)
-    if args.log_level == 'DEBUG':
-        transfer_model.summary()
-
-    # Verify the accuracy of the transfer model
-    transfer_metrics = transfer_model.evaluate(ds_class_val)
-    tf.debugging.assert_near(transfer_metrics, classifier_metrics)
+    transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
+                       epochs=args.finetune_epoch or args.epochs,
+                       steps_per_epoch=args.epoch_steps,
+                       callbacks=callbacks)
 
     # Train the whole transfer model
+    transfer_model.trainable = True
     transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
                        steps_per_epoch=args.epoch_steps,

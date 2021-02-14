@@ -2,28 +2,26 @@ import logging
 import os
 import shutil
 
-from models import load_feat_model
 from training import class_transfer_learn
 from utils import setup
 
 
 def run(args):
+    # Setup
     strategy = setup(args)
 
-    feat_model = load_feat_model(args, strategy)
-
+    # Transfer learn
     for ds_id in args.ds_ids:
-        class_transfer_learn(args, strategy, feat_model, ds_id)
+        class_transfer_learn(args, strategy, ds_id)
 
-    logging.info('clearing local log folder')
-    shutil.rmtree('./logs', ignore_errors=True)
-
+    # Get logs
     logging.info('downloading GCP logs')
     os.system(f'gsutil -m cp -r {args.downstream_path} ./')
     base_dir = os.path.basename(args.downstream_path)
     shutil.move(base_dir, 'logs')
     logging.info('GCP logs downloaded')
 
+    # Return tensorboard command
     tensorboard_cmd = "tensorboard dev upload " \
                       "--logdir logs " \
                       f"--name '{args.train_path}' " \

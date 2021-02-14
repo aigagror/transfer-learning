@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import shutil
 
 import tensorflow as tf
 
@@ -24,8 +25,11 @@ def setup(args):
     args.downstream_path = os.path.join(args.train_path, 'downstream-tasks')
 
     # Remove any previous work
+    logging.info('clearing remote logs')
     os.system(f'gsutil -m rm -r {args.downstream_path}')
-    logging.info('cleared remote logs')
+
+    logging.info('clearing local log folder')
+    shutil.rmtree('./logs', ignore_errors=True)
 
     # Logs
     args.log_level = args.log_level.upper()
