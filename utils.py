@@ -24,7 +24,7 @@ def setup(args):
     args.downstream_path = os.path.join(args.train_path, 'downstream-tasks')
 
     # Remove any previous work
-    os.system(f'gsutil -m rm - r {args.downstream_path}')
+    os.system(f'gsutil -m rm -r {args.downstream_path}')
 
     # Logs
     args.log_level = args.log_level.upper()
