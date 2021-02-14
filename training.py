@@ -64,7 +64,8 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     callbacks = [
         tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
         tf.keras.callbacks.LearningRateScheduler(
-            partial(lr_scheduler, args=args)
+            partial(lr_scheduler, args=args),
+            verbose=1 if args.log_level == 'DEBUG' else 0
         )
     ]
     classifier.fit(ds_feat_train.repeat(), validation_data=ds_feat_val,

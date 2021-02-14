@@ -14,7 +14,7 @@ parser.add_argument('--epoch-steps', type=int)
 parser.add_argument('--bsz', type=int)
 parser.add_argument('--lr', type=float)
 parser.add_argument('--lr-decays', type=int, nargs='*', default=[])
-parser.add_argument('--log-level', type=str, default='info')
+parser.add_argument('--log-level', choices=['debug', 'info', 'warn', 'error'], default='info')
 parser.add_argument('--ds-ids', type=str, nargs='+')
 
 
