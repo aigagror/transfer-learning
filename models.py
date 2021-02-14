@@ -18,7 +18,7 @@ def load_feat_model(args, strategy):
         feat_out = base_model.get_layer('feats').output
         feat_model = tf.keras.Model(input, feat_out)
 
-    if logging.getLevelName(args.log_level) <= logging.getLevelName('DEBUG'):
+    if args.log_level == 'DEBUG':
         base_model.summary()
         feat_model.summary()
 

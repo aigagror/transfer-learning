@@ -97,7 +97,7 @@ def load_ds(args, ds_id):
     processed_ds_val = preprocess(ds_val, training=False)
 
     # Show examples if debug level is log
-    if logging.getLevelName(args.log_level) <= logging.getLevelName('DEBUG'):
+    if args.log_level == 'DEBUG':
         for image_key in ['image', 'segmentation_mask']:
             if image_key in info.features:
                 tfds.show_examples(processed_ds_val, info, image_key=image_key, rows=1)
