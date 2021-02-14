@@ -78,6 +78,7 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     classifier.save(os.path.join(task_path, 'classifier'))
 
     # Create the transfer model
+    tf.keras.backend.clear_session()
     clone_feat_model = load_feat_model(args, strategy)
     with strategy.scope():
         clone_feat_model.trainable = True
