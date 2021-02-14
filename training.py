@@ -50,14 +50,14 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     ds_feat_val = postprocess(args, ds_feat_val)
 
     # Make classifier
+    ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
         classifier = tf.keras.Sequential([
             tf.keras.Input([2048]),
             tf.keras.layers.Dense(nclass)
         ])
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-        classifier.compile(optimizer, loss='sparse_categorical_crossentropy',
-                           metrics='acc', steps_per_execution=100)
+        classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
     # Train the classifier
     task_path = os.path.join(args.downstream_path, ds_id)
@@ -81,12 +81,10 @@ def class_transfer_learn(args, strategy, feat_model, ds_id):
     clone_feat_model = load_feat_model(args, strategy)
     with strategy.scope():
         clone_feat_model.trainable = True
-        classifier_clone = tf.keras.models.clone_model(classifier)
-        output = classifier_clone(clone_feat_model.output)
+        output = classifier(clone_feat_model.output)
         transfer_model = tf.keras.Model(clone_feat_model.input, output)
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-        transfer_model.compile(optimizer, loss='sparse_categorical_crossentropy',
-                               metrics='acc', steps_per_execution=50)
+        transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=50)
     if args.log_level == 'DEBUG':
         transfer_model.summary()
 
