@@ -12,8 +12,7 @@ def sample_bbox_crop(inputs):
         bbox = tf.constant([0.0, 0.0, 1.0, 1.0])
     bbox = tf.reshape(bbox, [1, 1, 4])
 
-    distorted_bbox = tf.image.sample_distorted_bounding_box(tf.shape(image), bbox,
-                                                            min_object_covered=0.75)
+    distorted_bbox = tf.image.sample_distorted_bounding_box(tf.shape(image), bbox, min_object_covered=0.75)
     bbox_begin, bbox_size, _ = distorted_bbox
 
     # Crop the image to the specified bounding box.

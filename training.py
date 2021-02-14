@@ -21,16 +21,14 @@ def lr_scheduler(epoch, lr, args):
 def class_transfer_learn(args, strategy, ds_id):
     # Load dataset
     ds_train, ds_val, info = load_ds(args, ds_id)
-    nclass = info.features['label'].num_classes
-    train_size = info.splits['train'].num_examples
+    nclass, train_size = info.features['label'].num_classes, info.splits['train'].num_examples
     logging.info(f'{ds_id}, {nclass} classes, {train_size} train examples')
 
     # Map to classification format
     ds_class_train, ds_class_val = ds_train.map(class_supervise), ds_val.map(class_supervise)
 
     # Postprocess
-    ds_class_train = postprocess(args, ds_class_train)
-    ds_class_val = postprocess(args, ds_class_val)
+    ds_class_train, ds_class_val = postprocess(args, ds_class_train), postprocess(args, ds_class_val)
 
     # Make transfer model
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
