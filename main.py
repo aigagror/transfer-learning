@@ -19,7 +19,9 @@ def run(args):
     shutil.rmtree('./logs', ignore_errors=True)
 
     logging.info('downloading GCP logs')
-    os.system(f'gsutil -m cp -r {args.downstream_path} ./logs')
+    os.system(f'gsutil -m cp -r {args.downstream_path} ./')
+    base_dir = os.path.basename(args.downstream_path)
+    shutil.move(base_dir, 'logs')
     logging.info('GCP logs downloaded')
 
     tensorboard_cmd = "tensorboard dev upload " \
