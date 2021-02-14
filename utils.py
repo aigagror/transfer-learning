@@ -25,6 +25,7 @@ def setup(args):
 
     # Remove any previous work
     os.system(f'gsutil -m rm -r {args.downstream_path}')
+    logging.info('cleared remote logs')
 
     # Logs
     args.log_level = args.log_level.upper()
