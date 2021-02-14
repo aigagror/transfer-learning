@@ -43,6 +43,7 @@ def class_transfer_learn(args, strategy, ds_id):
         transfer_model.summary()
 
     # Train the classifier
+    logging.info('training classifier')
     task_path = os.path.join(args.downstream_path, ds_id)
     callbacks = [
         tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
@@ -57,6 +58,7 @@ def class_transfer_learn(args, strategy, ds_id):
                        callbacks=callbacks)
 
     # Train the whole transfer model
+    logging.info('fine-tuning whole model')
     transfer_model.trainable = True
     transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
