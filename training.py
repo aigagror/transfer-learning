@@ -23,6 +23,7 @@ def extract_features(class_ds, model):
     features = tf.data.Dataset.from_tensor_slices(features)
     labels = class_ds.map(lambda x, y: y)
     feat_ds = tf.data.Dataset.zip((features, labels))
+    feat_ds = feat_ds.cache()
     return feat_ds
 
 
