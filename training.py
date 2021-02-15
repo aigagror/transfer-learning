@@ -60,6 +60,7 @@ def class_transfer_learn(args, strategy, ds_id):
     # Train the whole transfer model
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
+    optimizer = tf.keras.optimizers.SGD(args.lr, momentum=0.9, nesterov=True)
     transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
     transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
