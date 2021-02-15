@@ -43,7 +43,7 @@ def class_transfer_learn(args, strategy, ds_id):
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
         feat_model = load_feat_model(args, trainable=False)
-        classifier = tf.keras.layers.Dense(nclass)
+        classifier = tf.keras.Sequential([tf.keras.layers.Dense(nclass)])
         output = classifier(feat_model.output)
         transfer_model = tf.keras.Model(feat_model.input, output)
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
