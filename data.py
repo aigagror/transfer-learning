@@ -65,7 +65,8 @@ def apply_img_fn(inputs, img_fn):
 
 def flip_horizontal(inputs):
     for key in ['image', 'segmentation_mask']:
-        inputs[key] = tf.image.flip_left_right(inputs[key])
+        if key in inputs:
+            inputs[key] = tf.image.flip_left_right(inputs[key])
     return inputs
 
 
