@@ -63,10 +63,6 @@ def apply_img_fn(inputs, img_fn):
     return inputs
 
 
-def as_supervised(inputs, target):
-    return inputs['image'], inputs[target]
-
-
 def flip_horizontal(inputs):
     for key in ['image', 'segmentation_mask']:
         inputs[key] = tf.image.flip_left_right(inputs[key])
@@ -77,7 +73,12 @@ def rand_flip(inputs):
     return tf.cond(tf.random.uniform([]) > 0.5, lambda: inputs, lambda: flip_horizontal(inputs))
 
 
+def as_supervised(inputs, target):
+    return inputs['image'], inputs[target]
+
+
 class_supervise = partial(as_supervised, target='label')
+segment_supervise = partial(as_supervised, target='label')
 
 
 def preprocess(ds, training):
