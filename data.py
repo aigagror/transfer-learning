@@ -97,6 +97,11 @@ def preprocess(ds, augment):
     img_preprocess = partial(apply_img_fn, img_fn=img_fn)
 
     ds = ds.map(img_preprocess, tf.data.AUTOTUNE)
+
+    if not augment:
+        # Non augmented images are always the same so we can cache the final images.
+        ds = ds.cache()
+
     return ds
 
 
