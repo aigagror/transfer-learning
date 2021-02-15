@@ -83,6 +83,7 @@ segment_supervise = partial(as_supervised, target='label')
 
 
 def preprocess(ds, training):
+    ds = ds.cache()
     if training:
         ds = ds.map(sample_bbox_crop, tf.data.AUTOTUNE)
         ds = ds.map(rand_flip, tf.data.AUTOTUNE)
@@ -124,7 +125,6 @@ def load_ds(args, ds_id):
 
 
 def postprocess(ds, bsz, repeat=False):
-    ds = ds.cache()
     ds = ds.shuffle(len(ds))
     if repeat:
         ds = ds.repeat()
