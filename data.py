@@ -82,9 +82,9 @@ class_supervise = partial(as_supervised, target='label')
 segment_supervise = partial(as_supervised, target='label')
 
 
-def preprocess(ds, training):
+def preprocess(ds, augment):
     ds = ds.cache()
-    if training:
+    if augment:
         ds = ds.map(sample_bbox_crop, tf.data.AUTOTUNE)
         ds = ds.map(rand_flip, tf.data.AUTOTUNE)
     else:
@@ -100,28 +100,22 @@ def preprocess(ds, training):
     return ds
 
 
-def load_ds(args, ds_id):
-    ds_train, info = tfds.load(ds_id, split='train', data_dir=args.data_dir, try_gcs=True, shuffle_files=False,
-                               with_info=True)
-    ds_val = None
-    for split in ['test', 'validation']:
-        if split in info.splits:
-            ds_val = tfds.load(ds_id, split=split, data_dir=args.data_dir, try_gcs=True)
-            break
-    ds_val = ds_val or ds_train
+def load_ds(args, ds_id, split, augment=False):
+    _, info = tfds.load(ds_id, data_dir=args.data_dir, try_gcs=True, with_info=True)
+    ds = tfds.load(ds_id, split=split, data_dir=args.data_dir, try_gcs=True)
 
     # Preprocess
-    processed_ds_train = preprocess(ds_train, training=True)
-    processed_ds_val = preprocess(ds_val, training=False)
+    processed_ds = preprocess(ds, augment)
 
     # Show examples if debug level is log
     if args.log_level == 'DEBUG':
         for image_key in ['image', 'segmentation_mask']:
             if image_key in info.features:
-                tfds.show_examples(processed_ds_val, info, image_key=image_key, rows=1)
-                tfds.show_examples(processed_ds_train, info, image_key=image_key, rows=1)
+                tfds.show_examples(processed_ds, info, image_key=image_key, rows=1)
 
-    return processed_ds_train, processed_ds_val, info
+    class_ds = processed_ds.map(class_supervise, tf.data.AUTOTUNE)
+
+    return class_ds, info
 
 
 def postprocess(ds, bsz, repeat=False):

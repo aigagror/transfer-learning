@@ -5,7 +5,7 @@ from functools import partial
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from data import load_ds, class_supervise, postprocess
+from data import load_ds, postprocess
 from models import load_feat_model
 
 
@@ -18,23 +18,36 @@ def lr_scheduler(epoch, lr, args):
     return curr_lr
 
 
+def extract_features(class_ds, model):
+    features = model.predict(class_ds.batch(1024))
+    features = tf.data.Dataset.from_tensor_slices(features)
+    labels = class_ds.map(lambda x, y: y)
+    feat_ds = tf.data.Dataset.zip((features, labels))
+    return feat_ds
+
+
 def class_transfer_learn(args, strategy, ds_id):
     # Load dataset
-    ds_train, ds_val, info = load_ds(args, ds_id)
+    ds_train, info = load_ds(args, ds_id, 'train')
+    ds_val = None
+    for split in ['test', 'validation']:
+        if split in info.splits:
+            ds_val = load_ds(args, ds_id, split)
+            break
+    ds_val = ds_val or ds_train
+
     nclass, train_size = info.features['label'].num_classes, info.splits['train'].num_examples
     logging.info(f'{ds_id}, {nclass} classes, {train_size} train examples')
-
-    # Map to classification format
-    ds_class_train, ds_class_val = ds_train.map(class_supervise), ds_val.map(class_supervise)
 
     # Make transfer model
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
         feat_model = load_feat_model(args, trainable=False)
-        output = tf.keras.layers.Dense(nclass)(feat_model.output)
+        classifier = tf.keras.layers.Dense(nclass)
+        output = classifier(feat_model.output)
         transfer_model = tf.keras.Model(feat_model.input, output)
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-    transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+    classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
     if args.log_level == 'DEBUG':
         transfer_model.summary()
@@ -49,18 +62,29 @@ def class_transfer_learn(args, strategy, ds_id):
             verbose=1 if args.log_level == 'DEBUG' else 0
         )
     ]
-    transfer_model.fit(postprocess(ds_class_train, args.linear_bsz, repeat=True),
-                       validation_data=postprocess(ds_class_val, args.linear_bsz),
-                       epochs=args.finetune_epoch or args.epochs,
-                       steps_per_epoch=args.epoch_steps,
-                       callbacks=callbacks)
+    ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
+    classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
+                   validation_data=postprocess(ds_feat_val, args.linear_bsz),
+                   epochs=args.finetune_epoch or args.epochs,
+                   steps_per_epoch=args.epoch_steps,
+                   callbacks=callbacks)
+
+    # Verify classifer metrics match with
+    logging.info('verifying metrics between classifier and transfer model')
+    classifier_metrics = classifier.evaluate(ds_feat_val.batch(1024))
+    transfer_metrics = transfer_model.evaluate(ds_val.batch(1024))
+    tf.debugging.assert_near(classifier_metrics, transfer_metrics)
 
     # Train the whole transfer model
+    ds_aug_train, info = load_ds(args, ds_id, 'train', augment=True)
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
-    transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
-    transfer_model.fit(postprocess(ds_class_train, args.fine_bsz, repeat=True),
-                       validation_data=postprocess(ds_class_val, args.fine_bsz),
+    with strategy.scope():
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+        transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+
+    transfer_model.fit(postprocess(ds_aug_train, args.fine_bsz, repeat=True),
+                       validation_data=postprocess(ds_val, args.fine_bsz),
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
                        steps_per_epoch=args.epoch_steps,
                        callbacks=callbacks)
