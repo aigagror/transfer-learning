@@ -37,7 +37,7 @@ def class_transfer_learn(args, strategy, ds_id):
         output = tf.keras.layers.Dense(nclass)(feat_model.output)
         transfer_model = tf.keras.Model(feat_model.input, output)
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-        transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+    transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
     if args.log_level == 'DEBUG':
         transfer_model.summary()
@@ -60,6 +60,7 @@ def class_transfer_learn(args, strategy, ds_id):
     # Train the whole transfer model
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
+    transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
     transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
                        steps_per_epoch=args.epoch_steps,
