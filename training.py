@@ -71,7 +71,7 @@ def class_transfer_learn(args, strategy, ds_id):
                    callbacks=callbacks)
 
     # Compile the transfer model
-    ds_aug_train, info = load_ds(args, ds_id, 'train', augment=True)
+    ds_aug_train, _ = load_ds(args, ds_id, 'train', augment=True)
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
     with strategy.scope():

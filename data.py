@@ -91,7 +91,7 @@ def preprocess(ds, augment):
         ds = ds.map(center_crop, tf.data.AUTOTUNE)
 
     to_uint8 = partial(tf.cast, dtype=tf.uint8)
-    resize_224 = partial(tf.image.resize, size=[224, 224])
+    resize_224 = partial(tf.image.resize, size=[224, 224], method='bicubic')
     img_fn = lambda x: to_uint8(resize_224(x))
 
     img_preprocess = partial(apply_img_fn, img_fn=img_fn)
