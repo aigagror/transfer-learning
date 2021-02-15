@@ -123,10 +123,11 @@ def load_ds(args, ds_id):
     return processed_ds_train, processed_ds_val, info
 
 
-def postprocess(args, ds):
-    return (ds
-            .cache()
-            .shuffle(len(ds))
-            .batch(args.bsz)
-            .prefetch(tf.data.AUTOTUNE)
-            )
+def postprocess(ds, bsz, repeat=False):
+    ds = ds.cache()
+    ds = ds.shuffle(len(ds))
+    if repeat:
+        ds = ds.repeat()
+    ds = ds.batch(bsz)
+    ds = ds.prefetch(tf.data.AUTOTUNE)
+    return ds

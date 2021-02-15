@@ -27,9 +27,6 @@ def class_transfer_learn(args, strategy, ds_id):
     # Map to classification format
     ds_class_train, ds_class_val = ds_train.map(class_supervise), ds_val.map(class_supervise)
 
-    # Postprocess
-    ds_class_train, ds_class_val = postprocess(args, ds_class_train), postprocess(args, ds_class_val)
-
     # Make transfer model
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
@@ -52,7 +49,8 @@ def class_transfer_learn(args, strategy, ds_id):
             verbose=1 if args.log_level == 'DEBUG' else 0
         )
     ]
-    transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
+    transfer_model.fit(postprocess(ds_class_train, args.linear_bsz, repeat=True),
+                       validation_data=postprocess(ds_class_val, args.linear_bsz),
                        epochs=args.finetune_epoch or args.epochs,
                        steps_per_epoch=args.epoch_steps,
                        callbacks=callbacks)
@@ -61,7 +59,8 @@ def class_transfer_learn(args, strategy, ds_id):
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
     transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
-    transfer_model.fit(ds_class_train.repeat(), validation_data=ds_class_val,
+    transfer_model.fit(postprocess(ds_class_train, args.fine_bsz, repeat=True),
+                       validation_data=postprocess(ds_class_val, args.fine_bsz),
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
                        steps_per_epoch=args.epoch_steps,
                        callbacks=callbacks)
