@@ -12,8 +12,15 @@ def load_feat_model(args, trainable):
     try:
         input = base_model.get_layer('image').input
     except:
+        # Backwards compatability
         input = base_model.get_layer('imgs').input
-    feat_out = base_model.get_layer('feats').output
+
+    try:
+        feat_out = base_model.get_layer('feature').output
+    except:
+        # Backwards compatability
+        feat_out = base_model.get_layer('feats').output
+
     feat_model = tf.keras.Model(input, feat_out)
 
     if args.log_level == 'DEBUG':
