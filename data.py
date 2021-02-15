@@ -44,6 +44,14 @@ def center_crop(inputs):
     offset_width = ((image_width - center_crop_size) + 1) // 2
     image = tf.image.crop_to_bounding_box(image, offset_height, offset_width,
                                           center_crop_size, center_crop_size)
+
+    # Crop segmentation mask as well?
+    if 'segmentation_mask' in inputs:
+        mask = inputs['segmentation_mask']
+        mask = tf.image.crop_to_bounding_box(mask, offset_height, offset_width,
+                                             center_crop_size, center_crop_size)
+        inputs['segmentation_mask'] = mask
+
     inputs['image'] = image
     return inputs
 
@@ -59,14 +67,23 @@ def as_supervised(inputs, target):
     return inputs['image'], inputs[target]
 
 
-class_supervise = partial(as_supervised, target='label')
+def flip_horizontal(inputs):
+    for key in ['image', 'segmentation_mask']:
+        inputs[key] = tf.image.flip_left_right(inputs[key])
+    return inputs
 
-segment_supervise = partial(as_supervised, target='segmentation_mask')
+
+def rand_flip(inputs):
+    return tf.cond(tf.random.uniform([]) > 0.5, lambda: inputs, lambda: flip_horizontal(inputs))
+
+
+class_supervise = partial(as_supervised, target='label')
 
 
 def preprocess(ds, training):
     if training:
         ds = ds.map(sample_bbox_crop, tf.data.AUTOTUNE)
+        ds = ds.map(rand_flip, tf.data.AUTOTUNE)
     else:
         ds = ds.map(center_crop, tf.data.AUTOTUNE)
 
