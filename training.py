@@ -32,7 +32,7 @@ def class_transfer_learn(args, strategy, ds_id):
     ds_val = None
     for split in ['test', 'validation']:
         if split in info.splits:
-            ds_val = load_ds(args, ds_id, split)
+            ds_val, _ = load_ds(args, ds_id, split)
             break
     ds_val = ds_val or ds_train
 
