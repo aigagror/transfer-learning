@@ -47,15 +47,11 @@ def class_transfer_learn(args, strategy, ds_id):
         classifier = tf.keras.Sequential([tf.keras.layers.Dense(nclass)])
         output = classifier(feat_model.output)
         transfer_model = tf.keras.Model(feat_model.input, output)
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-    classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
     logging.info(f'{len(transfer_model.losses)} regularization losses')
     if args.log_level == 'DEBUG':
         transfer_model.summary()
 
-    # Train the classifier
-    logging.info('training classifier')
     task_path = os.path.join(args.downstream_path, ds_id)
     callbacks = [
         tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
@@ -64,12 +60,27 @@ def class_transfer_learn(args, strategy, ds_id):
             verbose=1 if args.log_level == 'DEBUG' else 0
         )
     ]
-    ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
-    classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
-                   validation_data=postprocess(ds_feat_val, args.linear_bsz),
-                   epochs=args.finetune_epoch or args.epochs,
-                   steps_per_epoch=args.epoch_steps,
-                   callbacks=callbacks)
+
+    # Train the classifier
+    logging.info('training classifier')
+    if args.fast:
+        with strategy.scope():
+            ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
+            optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+            classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+            classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
+                           validation_data=postprocess(ds_feat_val, args.linear_bsz),
+                           epochs=args.finetune_epoch or args.epochs,
+                           steps_per_epoch=args.epoch_steps,
+                           callbacks=callbacks)
+    else:
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+        transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+        transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
+                           validation_data=postprocess(ds_val, args.fine_bsz),
+                           initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
+                           steps_per_epoch=args.epoch_steps,
+                           callbacks=callbacks)
 
     # Compile the transfer model
     logging.info('fine-tuning whole model')

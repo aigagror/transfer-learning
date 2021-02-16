@@ -6,18 +6,24 @@ import shutil
 import tensorflow as tf
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--weight-decay', type=float)
+parser.add_argument('--ds-ids', type=str, nargs='+')
 parser.add_argument('--train-path', type=str)
 parser.add_argument('--data-dir', type=str, default='gs://aigagror/datasets')
+
 parser.add_argument('--epochs', type=int)
 parser.add_argument('--finetune-epoch', type=int)
 parser.add_argument('--epoch-steps', type=int)
+
+parser.add_argument('--fast', action='store_true')
+
 parser.add_argument('--linear-bsz', type=int)
 parser.add_argument('--fine-bsz', type=int)
+
+parser.add_argument('--weight-decay', type=float)
 parser.add_argument('--lr', type=float)
 parser.add_argument('--lr-decays', type=int, nargs='*', default=[])
+
 parser.add_argument('--log-level', choices=['debug', 'info', 'warn', 'error'], default='info')
-parser.add_argument('--ds-ids', type=str, nargs='+')
 
 
 def setup(args):
