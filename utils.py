@@ -35,7 +35,7 @@ def setup(args):
     logging.info('clearing remote logs')
     os.system(f'gsutil -m rm -r {args.downstream_path}')
 
-    logging.info('clearing local log folder')
+    logging.info('clearing local logs')
     shutil.rmtree('./logs', ignore_errors=True)
 
     # Logs

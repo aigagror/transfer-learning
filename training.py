@@ -29,7 +29,7 @@ def extract_features(class_ds, model):
 
 def class_transfer_learn(args, strategy, ds_id):
     # Load dataset
-    ds_train, info = load_ds(args, ds_id, 'train', augment=True)
+    ds_train, info = load_ds(args, ds_id, 'train')
     ds_val = None
     for split in ['test', 'validation']:
         if split in info.splits:
@@ -92,6 +92,7 @@ def class_transfer_learn(args, strategy, ds_id):
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
     # Finetune the transfer model
+    ds_train, _ = load_ds(args, ds_id, 'train', augment=True)
     transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
                        validation_data=postprocess(ds_val, args.fine_bsz),
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
