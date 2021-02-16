@@ -3,6 +3,8 @@ from functools import partial
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+import augmentations
+
 
 def sample_bbox_crop(inputs):
     image = inputs['image']
@@ -74,6 +76,11 @@ def rand_flip(inputs):
     return tf.cond(tf.random.uniform([]) > 0.5, lambda: inputs, lambda: flip_horizontal(inputs))
 
 
+def autoaugment(inputs):
+    inputs['image'] = augmentations.AutoAugment().distort(inputs['image'])
+    return inputs
+
+
 def as_supervised(inputs, target):
     return inputs['image'], inputs[target]
 
@@ -87,6 +94,7 @@ def preprocess(ds, augment):
     if augment:
         ds = ds.map(sample_bbox_crop, tf.data.AUTOTUNE)
         ds = ds.map(rand_flip, tf.data.AUTOTUNE)
+        ds = ds.map(autoaugment, tf.data.AUTOTUNE)
     else:
         ds = ds.map(center_crop, tf.data.AUTOTUNE)
 
