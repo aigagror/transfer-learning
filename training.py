@@ -72,8 +72,7 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
         classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
                        validation_data=postprocess(ds_feat_val, args.linear_bsz),
-                       epochs=args.finetune_epoch or args.epochs,
-                       steps_per_epoch=args.epoch_steps,
+                       epochs=args.finetune_epoch or args.epochs, steps_per_epoch=args.epoch_steps,
                        callbacks=callbacks)
     else:
         logging.info('training classifier with the whole model')
@@ -82,8 +81,7 @@ def class_transfer_learn(args, strategy, ds_id):
             transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
         transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
                            validation_data=postprocess(ds_val, args.fine_bsz),
-                           initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
-                           steps_per_epoch=args.epoch_steps,
+                           epochs=args.epochs, steps_per_epoch=args.epoch_steps,
                            callbacks=callbacks)
 
     # Compile the transfer model
