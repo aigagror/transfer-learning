@@ -23,8 +23,4 @@ def load_feat_model(args, trainable):
 
     feat_model = tf.keras.Model(input, feat_out)
 
-    if args.log_level == 'DEBUG':
-        base_model.summary()
-        feat_model.summary()
-
     return feat_model

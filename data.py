@@ -116,7 +116,7 @@ def load_ds(args, ds_id, split, augment=False):
     if args.log_level == 'DEBUG':
         for image_key in ['image', 'segmentation_mask']:
             if image_key in info.features:
-                tfds.show_examples(processed_ds, info, image_key=image_key, rows=1)
+                tfds.show_examples(processed_ds, info, image_key=image_key, rows=1, cols=5)
 
     class_ds = processed_ds.map(class_supervise, tf.data.AUTOTUNE)
 
