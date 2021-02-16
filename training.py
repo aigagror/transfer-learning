@@ -52,6 +52,9 @@ def class_transfer_learn(args, strategy, ds_id):
     if args.log_level == 'DEBUG':
         transfer_model.summary()
 
+    # Extract features
+    ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
+
     task_path = os.path.join(args.downstream_path, ds_id)
     callbacks = [
         tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
@@ -65,7 +68,6 @@ def class_transfer_learn(args, strategy, ds_id):
     if args.fast:
         logging.info('training classifier quickly')
         with strategy.scope():
-            ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
             optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
             classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
             classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
