@@ -29,7 +29,7 @@ def extract_features(class_ds, model):
 
 def class_transfer_learn(args, strategy, ds_id):
     # Load dataset
-    ds_train, info = load_ds(args, ds_id, 'train')
+    ds_train, info = load_ds(args, ds_id, 'train', augment=True)
     ds_val = None
     for split in ['test', 'validation']:
         if split in info.splits:
@@ -71,7 +71,6 @@ def class_transfer_learn(args, strategy, ds_id):
                    callbacks=callbacks)
 
     # Compile the transfer model
-    ds_aug_train, _ = load_ds(args, ds_id, 'train', augment=True)
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
     with strategy.scope():
@@ -85,7 +84,7 @@ def class_transfer_learn(args, strategy, ds_id):
     tf.debugging.assert_near(classifier_metrics, transfer_metrics)
 
     # Finetune the transfer model
-    transfer_model.fit(postprocess(ds_aug_train, args.fine_bsz, repeat=True),
+    transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
                        validation_data=postprocess(ds_val, args.fine_bsz),
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
                        steps_per_epoch=args.epoch_steps,
