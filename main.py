@@ -9,6 +9,7 @@ from utils import setup
 def run(args):
     # Setup
     strategy = setup(args)
+    logging.info(args)
 
     # Transfer learn
     for ds_id in args.ds_ids:
