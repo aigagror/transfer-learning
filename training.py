@@ -62,8 +62,8 @@ def class_transfer_learn(args, strategy, ds_id):
     ]
 
     # Train the classifier
-    logging.info('training classifier')
     if args.fast:
+        logging.info('training classifier quickly')
         with strategy.scope():
             ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
             optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
@@ -74,6 +74,7 @@ def class_transfer_learn(args, strategy, ds_id):
                            steps_per_epoch=args.epoch_steps,
                            callbacks=callbacks)
     else:
+        logging.info('training classifier with the whole model')
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
         transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
