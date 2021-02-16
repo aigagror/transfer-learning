@@ -79,8 +79,8 @@ def class_transfer_learn(args, strategy, ds_id):
         with strategy.scope():
             optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
             transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
-        transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
-                           validation_data=postprocess(ds_val, args.fine_bsz),
+        transfer_model.fit(postprocess(ds_train, args.linear_bsz, repeat=True),
+                           validation_data=postprocess(ds_val, args.linear_bsz),
                            epochs=args.epochs, steps_per_epoch=args.epoch_steps,
                            callbacks=callbacks)
 
