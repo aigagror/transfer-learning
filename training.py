@@ -92,12 +92,6 @@ def class_transfer_learn(args, strategy, ds_id):
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
-    # Verify classifer metrics match with that of the transfer model
-    logging.info('verifying metrics between classifier and transfer model')
-    classifier_metrics = classifier.evaluate(ds_feat_val.batch(1024))
-    transfer_metrics = transfer_model.evaluate(ds_val.batch(1024))
-    tf.debugging.assert_near(classifier_metrics, transfer_metrics)
-
     # Finetune the transfer model
     transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
                        validation_data=postprocess(ds_val, args.fine_bsz),
