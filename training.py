@@ -50,6 +50,7 @@ def class_transfer_learn(args, strategy, ds_id):
         optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
     classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
+    logging.info(f'{len(transfer_model.losses)} regularization losses')
     if args.log_level == 'DEBUG':
         transfer_model.summary()
 
