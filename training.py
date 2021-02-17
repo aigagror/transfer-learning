@@ -65,24 +65,14 @@ def class_transfer_learn(args, strategy, ds_id):
     ]
 
     # Train the classifier
-    if args.fast:
-        logging.info('training classifier quickly')
-        with strategy.scope():
-            optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-            classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
-        classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
-                       validation_data=postprocess(ds_feat_val, args.linear_bsz),
-                       epochs=args.finetune_epoch or args.epochs, steps_per_epoch=args.epoch_steps,
-                       callbacks=callbacks)
-    else:
-        logging.info('training classifier with the whole model')
-        with strategy.scope():
-            optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-            transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
-        transfer_model.fit(postprocess(ds_train, args.linear_bsz, repeat=True),
-                           validation_data=postprocess(ds_val, args.linear_bsz),
-                           epochs=args.epochs, steps_per_epoch=args.epoch_steps,
-                           callbacks=callbacks)
+    logging.info('training classifier')
+    with strategy.scope():
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+        classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+    classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
+                   validation_data=postprocess(ds_feat_val, args.linear_bsz),
+                   epochs=args.finetune_epoch or args.epochs, steps_per_epoch=args.epoch_steps,
+                   callbacks=callbacks)
 
     # Compile the transfer model
     logging.info('fine-tuning whole model')

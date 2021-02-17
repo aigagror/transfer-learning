@@ -14,8 +14,6 @@ parser.add_argument('--epochs', type=int)
 parser.add_argument('--finetune-epoch', type=int)
 parser.add_argument('--epoch-steps', type=int)
 
-parser.add_argument('--fast', action='store_true')
-
 parser.add_argument('--linear-bsz', type=int)
 parser.add_argument('--fine-bsz', type=int)
 
