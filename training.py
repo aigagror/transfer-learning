@@ -5,10 +5,10 @@ from functools import partial
 import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
+from sklearn.linear_model import LogisticRegression
 
 from data import load_ds, postprocess
 from models import load_feat_model
-from sklearn.linear_model import LogisticRegression
 
 
 def lr_scheduler(epoch, lr, args):
@@ -27,6 +27,16 @@ def extract_features(class_ds, model):
     feat_ds = tf.data.Dataset.zip((features, labels))
     feat_ds = feat_ds.cache()
     return feat_ds
+
+
+def get_optimizer(args):
+    if args.optimizer == 'lamb':
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+    elif args.optimizer == 'sgd':
+        optimizer = tf.keras.optimizers.SGD(args.lr, momentum=0.9, nesterov=True)
+    else:
+        raise Exception(f'unknown optimizer: {args.optimizer}')
+    return optimizer
 
 
 def class_transfer_learn(args, strategy, ds_id):
@@ -57,6 +67,17 @@ def class_transfer_learn(args, strategy, ds_id):
     # Extract features
     ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
 
+    # Setup up training callbacks
+    task_path = os.path.join(args.downstream_path, ds_id)
+    callbacks = [
+        tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
+        tf.keras.callbacks.LearningRateScheduler(
+            partial(lr_scheduler, args=args),
+            verbose=1 if args.log_level == 'DEBUG' else 0
+        )
+    ]
+
+    # Train classifier
     if args.optimizer == 'lbfgs':
         logging.info('training classifier with LBFGS')
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
@@ -69,19 +90,9 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
         classifier.evaluate(postprocess(ds_feat_val, args.linear_bsz))
     else:
-        # Train the classifier with gradient descent
-        task_path = os.path.join(args.downstream_path, ds_id)
-        callbacks = [
-            tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
-            tf.keras.callbacks.LearningRateScheduler(
-                partial(lr_scheduler, args=args),
-                verbose=1 if args.log_level == 'DEBUG' else 0
-            )
-        ]
-
         logging.info('training classifier with gradient descent')
         with strategy.scope():
-            optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+            optimizer = get_optimizer(args)
             classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
         classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
                        validation_data=postprocess(ds_feat_val, args.linear_bsz),
@@ -92,7 +103,7 @@ def class_transfer_learn(args, strategy, ds_id):
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
     with strategy.scope():
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+        optimizer = get_optimizer(args)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
 
     # Finetune the transfer model
