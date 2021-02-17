@@ -59,9 +59,9 @@ def class_transfer_learn(args, strategy, ds_id):
 
     if args.optimizer == 'lbfgs':
         logging.info('training classifier with LBFGS')
-        feat_train = np.concatenate(list(ds_feat_train.batch(1024).as_numpy_iterator()), axis=0)
-        feats, labels = feat_train[:, 0], feat_train[:, 1]
-        result = LogisticRegression(C=(1 / args.weight_decay)).fit(feats, labels)
+        train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
+        train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
+        result = LogisticRegression(C=(1 / args.weight_decay)).fit(train_feats, train_labels)
         classifier.layers[0].kernel.assign(result.coef_.T)
         classifier.layers[0].bias.assign(result.intercept_)
 
