@@ -2,11 +2,13 @@ import logging
 import os
 from functools import partial
 
+import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
 
 from data import load_ds, postprocess
 from models import load_feat_model
+from sklearn.linear_model import LogisticRegression
 
 
 def lr_scheduler(epoch, lr, args):
@@ -55,24 +57,36 @@ def class_transfer_learn(args, strategy, ds_id):
     # Extract features
     ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
 
-    task_path = os.path.join(args.downstream_path, ds_id)
-    callbacks = [
-        tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
-        tf.keras.callbacks.LearningRateScheduler(
-            partial(lr_scheduler, args=args),
-            verbose=1 if args.log_level == 'DEBUG' else 0
-        )
-    ]
+    if args.optimizer == 'lbfgs':
+        logging.info('training classifier with LBFGS')
+        feat_train = np.array(list(ds_feat_train.batch(1024).as_numpy_iterator()))
+        feats, labels = feat_train[:, 0], feat_train[:, 1]
+        result = LogisticRegression(C=(1 / args.weight_decay)).fit(feats, labels)
+        classifier.layers[0].kernel.assign(result.coef_.T)
+        classifier.layers[0].bias.assign(result.intercept_)
 
-    # Train the classifier
-    logging.info('training classifier')
-    with strategy.scope():
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
-        classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
-    classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
-                   validation_data=postprocess(ds_feat_val, args.linear_bsz),
-                   epochs=args.finetune_epoch or args.epochs, steps_per_epoch=args.epoch_steps,
-                   callbacks=callbacks)
+        with strategy.scope():
+            classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
+        classifier.evaluate(postprocess(ds_feat_val, args.linear_bsz))
+    else:
+        # Train the classifier with gradient descent
+        task_path = os.path.join(args.downstream_path, ds_id)
+        callbacks = [
+            tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
+            tf.keras.callbacks.LearningRateScheduler(
+                partial(lr_scheduler, args=args),
+                verbose=1 if args.log_level == 'DEBUG' else 0
+            )
+        ]
+
+        logging.info('training classifier with gradient descent')
+        with strategy.scope():
+            optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+            classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+        classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
+                       validation_data=postprocess(ds_feat_val, args.linear_bsz),
+                       epochs=args.finetune_epoch or args.epochs, steps_per_epoch=args.epoch_steps,
+                       callbacks=callbacks)
 
     # Compile the transfer model
     logging.info('fine-tuning whole model')
