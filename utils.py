@@ -10,7 +10,7 @@ parser.add_argument('--ds-ids', type=str, nargs='+')
 parser.add_argument('--train-path', type=str)
 parser.add_argument('--data-dir', type=str, default='gs://aigagror/datasets')
 
-parser.add_argument('--optimizer', choices=['lamb', 'lbfgs', 'sgd'])
+parser.add_argument('--optimizer', choices=['lamb', 'lbfgs', 'sgd', 'adam'])
 
 parser.add_argument('--epochs', type=int)
 parser.add_argument('--finetune-epoch', type=int)

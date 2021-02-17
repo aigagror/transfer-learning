@@ -31,9 +31,11 @@ def extract_features(class_ds, model):
 
 def get_optimizer(args):
     if args.optimizer == 'lamb':
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+        optimizer = tfa.optimizers.LAMB(args.lr)
     elif args.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(args.lr, momentum=0.9, nesterov=True)
+    elif args.optimizer == 'adam':
+        optimizer = tf.keras.optimizers.Adam(args.lr)
     else:
         raise Exception(f'unknown optimizer: {args.optimizer}')
     return optimizer
@@ -56,7 +58,10 @@ def class_transfer_learn(args, strategy, ds_id):
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
         feat_model = load_feat_model(args, trainable=False)
-        classifier = tf.keras.Sequential([tf.keras.layers.Dense(nclass)])
+        l2_reg = tf.keras.regularizers.L2(args.weight_decay)
+        classifier = tf.keras.Sequential([
+            tf.keras.layers.Dense(nclass, kernel_regularizer=l2_reg, bias_regularizer=l2_reg)
+        ])
         output = classifier(feat_model.output)
         transfer_model = tf.keras.Model(feat_model.input, output)
 
