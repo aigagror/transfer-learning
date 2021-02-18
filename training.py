@@ -1,5 +1,7 @@
+import contextlib
 import logging
 import os
+import time
 from functools import partial
 
 import numpy as np
@@ -18,6 +20,14 @@ def lr_scheduler(epoch, lr, args):
         if e in args.lr_decays:
             curr_lr *= 0.1
     return curr_lr
+
+
+@contextlib.contextmanager
+def timed_execution():
+    t0 = time.time()
+    yield
+    dt = time.time() - t0
+    logging.info('evaluation took: %f seconds' % dt)
 
 
 def extract_features(class_ds, model):
@@ -87,7 +97,8 @@ def class_transfer_learn(args, strategy, ds_id):
         logging.info('training classifier with LBFGS')
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
-        result = LogisticRegression(C=(1 / args.weight_decay), n_jobs=-1).fit(train_feats, train_labels)
+        with timed_execution():
+            result = LogisticRegression(C=(1 / args.weight_decay), n_jobs=-1).fit(train_feats, train_labels)
         classifier.layers[0].kernel.assign(result.coef_.T)
         classifier.layers[0].bias.assign(result.intercept_)
 
