@@ -41,7 +41,7 @@ def extract_features(class_ds, model):
 
 def get_optimizer(args):
     if args.optimizer == 'lamb':
-        optimizer = tfa.optimizers.LAMB(args.lr)
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
     elif args.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(args.lr, momentum=0.9, nesterov=True)
     elif args.optimizer == 'adam':
@@ -70,7 +70,9 @@ def class_transfer_learn(args, strategy, ds_id):
         feat_model = load_feat_model(args, trainable=False)
         l2_reg = tf.keras.regularizers.L2(args.weight_decay)
         classifier = tf.keras.Sequential([
-            tf.keras.layers.Dense(nclass, kernel_regularizer=l2_reg, bias_regularizer=l2_reg)
+            tf.keras.layers.Dense(nclass,
+                                  kernel_regularizer=l2_reg if args.optimizer != 'lamb' else None,
+                                  bias_regularizer=l2_reg if args.optimizer != 'lamb' else None)
         ])
         output = classifier(feat_model.output)
         transfer_model = tf.keras.Model(feat_model.input, output)
