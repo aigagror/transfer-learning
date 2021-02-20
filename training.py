@@ -100,7 +100,8 @@ def class_transfer_learn(args, strategy, ds_id):
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
         with timed_execution():
-            result = LogisticRegression(C=(1 / args.weight_decay), n_jobs=-1, max_iter=1000).fit(train_feats, train_labels)
+            result = LogisticRegression(C=(1 / args.weight_decay), n_jobs=-1, max_iter=1000).fit(train_feats,
+                                                                                                 train_labels)
         classifier.layers[0].kernel.assign(result.coef_.T)
         classifier.layers[0].bias.assign(result.intercept_)
 
@@ -131,6 +132,3 @@ def class_transfer_learn(args, strategy, ds_id):
                        initial_epoch=args.finetune_epoch or args.epochs, epochs=args.epochs,
                        steps_per_epoch=args.epoch_steps,
                        callbacks=callbacks)
-
-    # Save the transfer model
-    transfer_model.save(os.path.join(task_path, 'transfer_model'))
