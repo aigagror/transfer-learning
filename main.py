@@ -26,6 +26,6 @@ def run(args):
     tensorboard_cmd = "tensorboard dev upload " \
                       "--logdir logs " \
                       f"--name '{args.train_path}' " \
-                      f"--description '{args.weight_decay} weight decay' " \
+                      f"--description '{args.linear_l2} linear l2, {args.fine_l2} fine l2' " \
                       "--one_shot"
     return tensorboard_cmd

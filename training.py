@@ -39,9 +39,9 @@ def extract_features(class_ds, model):
     return feat_ds
 
 
-def get_optimizer(args):
+def get_optimizer(args, linear_training):
     if args.optimizer == 'lamb':
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.weight_decay)
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.linear_l2 if linear_training else args.fine_l2)
     elif args.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(args.lr, momentum=0.9, nesterov=True)
     elif args.optimizer == 'adam':
@@ -69,11 +69,8 @@ def class_transfer_learn(args, strategy, ds_id):
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
         feat_model = load_feat_model(args, trainable=False)
-        l2_reg = tf.keras.regularizers.L2(args.weight_decay)
         classifier = tf.keras.Sequential([
-            tf.keras.layers.Dense(nclass,
-                                  kernel_regularizer=l2_reg if args.optimizer != 'lamb' else None,
-                                  bias_regularizer=l2_reg if args.optimizer != 'lamb' else None)
+            tf.keras.layers.Dense(nclass)
         ])
         output = classifier(feat_model.output)
         transfer_model = tf.keras.Model(feat_model.input, output)
@@ -101,8 +98,7 @@ def class_transfer_learn(args, strategy, ds_id):
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
         with timed_execution():
-            result = LogisticRegression(C=(1 / args.weight_decay), n_jobs=-1, max_iter=1000).fit(train_feats,
-                                                                                                 train_labels)
+            result = LogisticRegression(C=(1 / args.linear_l2), n_jobs=-1, max_iter=1000).fit(train_feats, train_labels)
         classifier.layers[0].kernel.assign(result.coef_.T)
         classifier.layers[0].bias.assign(result.intercept_)
 
@@ -112,7 +108,7 @@ def class_transfer_learn(args, strategy, ds_id):
     else:
         logging.info('training classifier with gradient descent')
         with strategy.scope():
-            optimizer = get_optimizer(args)
+            optimizer = get_optimizer(args, linear_training=True)
             classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
         classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
                        validation_data=postprocess(ds_feat_val, args.linear_bsz),
@@ -123,7 +119,7 @@ def class_transfer_learn(args, strategy, ds_id):
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
     with strategy.scope():
-        optimizer = get_optimizer(args)
+        optimizer = get_optimizer(args, linear_training=False)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=200)
 
     # Finetune the transfer model
