@@ -19,7 +19,8 @@ parser.add_argument('--epoch-steps', type=int)
 parser.add_argument('--linear-bsz', type=int)
 parser.add_argument('--fine-bsz', type=int)
 
-parser.add_argument('--weight-decay', type=float)
+parser.add_argument('--linear-l2', type=float)
+parser.add_argument('--fine-l2', type=float)
 parser.add_argument('--lr', type=float)
 parser.add_argument('--lr-decays', type=int, nargs='*', default=[])
 
