@@ -53,13 +53,14 @@ def get_optimizer(args):
 
 def class_transfer_learn(args, strategy, ds_id):
     # Load dataset
-    ds_train, info = load_ds(args, ds_id, 'train')
+
+    ds_train_no_augment, info = load_ds(args, ds_id, 'train')
     ds_val = None
     for split in ['test', 'validation']:
         if split in info.splits:
             ds_val, _ = load_ds(args, ds_id, split)
             break
-    ds_val = ds_val or ds_train
+    ds_val = ds_val or ds_train_no_augment
 
     nclass, train_size = info.features['label'].num_classes, info.splits['train'].num_examples
     logging.info(f'{ds_id}, {nclass} classes, {train_size} train examples')
@@ -82,7 +83,7 @@ def class_transfer_learn(args, strategy, ds_id):
         transfer_model.summary()
 
     # Extract features
-    ds_feat_train, ds_feat_val = extract_features(ds_train, feat_model), extract_features(ds_val, feat_model)
+    ds_feat_train, ds_feat_val = extract_features(ds_train_no_augment, feat_model), extract_features(ds_val, feat_model)
 
     # Setup up training callbacks
     task_path = os.path.join(args.downstream_path, ds_id)

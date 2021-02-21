@@ -94,7 +94,6 @@ def preprocess(ds, augment):
     if augment:
         ds = ds.map(sample_bbox_crop, tf.data.AUTOTUNE)
         ds = ds.map(rand_flip, tf.data.AUTOTUNE)
-        ds = ds.map(autoaugment, tf.data.AUTOTUNE)
     else:
         ds = ds.map(center_crop, tf.data.AUTOTUNE)
 
