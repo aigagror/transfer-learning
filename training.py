@@ -15,11 +15,9 @@ from models import load_feat_model
 
 def lr_scheduler(epoch, lr, args):
     # Epoch is 0-indexed
-    curr_lr = args.lr
-    for e in range(1, epoch + 1):
-        if e in args.lr_decays:
-            curr_lr *= 0.1
-    return curr_lr
+    if epoch in args.lr_decays:
+        return lr * 0.1
+    return lr
 
 
 @contextlib.contextmanager
