@@ -47,8 +47,6 @@ def get_optimizer(args, linear_training):
         optimizer = tfa.optimizers.AdamW(lr, weight_decay=weight_decay)
     elif args.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(lr, momentum=0.9, nesterov=True)
-    elif args.optimizer == 'adam':
-        optimizer = tf.keras.optimizers.Adam(lr)
     else:
         raise Exception(f'unknown optimizer: {args.optimizer}')
     return optimizer
