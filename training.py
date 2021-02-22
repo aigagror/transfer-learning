@@ -69,12 +69,13 @@ def class_transfer_learn(args, strategy, ds_id):
     # Make transfer model
     ce_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     with strategy.scope():
+        input = tf.keras.Input([224, 224, 3])
         feat_model = load_feat_model(args, trainable=False)
         classifier = tf.keras.Sequential([
             tf.keras.layers.Dense(nclass)
         ])
-        output = classifier(feat_model.output)
-        transfer_model = tf.keras.Model(feat_model.input, output)
+        output = classifier(feat_model(input, training=False))
+        transfer_model = tf.keras.Model(input, output)
 
     logging.info(f'{len(transfer_model.losses)} regularization losses')
     if args.log_level == 'DEBUG':
