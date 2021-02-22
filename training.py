@@ -39,11 +39,12 @@ def extract_features(class_ds, model):
 
 def get_optimizer(args, linear_training):
     lr = args.linear_lr if linear_training else args.fine_lr
-    logging.debug(f'{lr} lr')
+    weight_decay = args.linear_wd if linear_training else args.fine_wd
+    logging.debug(f'{lr} lr, {weight_decay} weight_decay')
     if args.optimizer == 'lamb':
-        weight_decay = args.linear_wd if linear_training else args.fine_wd
-        logging.debug(f'{weight_decay} weight_decay')
         optimizer = tfa.optimizers.LAMB(lr, weight_decay_rate=weight_decay)
+    elif args.optimizer == 'adamw':
+        optimizer = tfa.optimizers.AdamW(lr, weight_decay=weight_decay)
     elif args.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(lr, momentum=0.9, nesterov=True)
     elif args.optimizer == 'adam':
