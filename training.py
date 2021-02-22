@@ -120,6 +120,7 @@ def class_transfer_learn(args, strategy, ds_id):
     transfer_model.trainable = True
     with strategy.scope():
         optimizer = get_optimizer(args, linear_training=False)
+        logging.debug(optimizer)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=200)
 
     # Finetune the transfer model
