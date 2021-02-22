@@ -19,9 +19,11 @@ parser.add_argument('--epoch-steps', type=int)
 parser.add_argument('--linear-bsz', type=int)
 parser.add_argument('--fine-bsz', type=int)
 
-parser.add_argument('--linear-l2', type=float)
-parser.add_argument('--fine-l2', type=float)
-parser.add_argument('--lr', type=float)
+parser.add_argument('--linear-wd', type=float)
+parser.add_argument('--fine-wd', type=float)
+
+parser.add_argument('--linear-lr', type=float)
+parser.add_argument('--fine-lr', type=float)
 parser.add_argument('--lr-decays', type=int, nargs='*', default=[])
 
 parser.add_argument('--log-level', choices=['debug', 'info', 'warn', 'error'], default='info')

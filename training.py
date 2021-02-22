@@ -40,14 +40,16 @@ def extract_features(class_ds, model):
 
 
 def get_optimizer(args, linear_training):
+    lr = args.linear_lr if linear_training else args.fine_lr
+    logging.debug(f'{lr} lr')
     if args.optimizer == 'lamb':
-        weight_decay = args.linear_l2 if linear_training else args.fine_l2
+        weight_decay = args.linear_wd if linear_training else args.fine_wd
         logging.debug(f'{weight_decay} weight_decay')
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=weight_decay)
+        optimizer = tfa.optimizers.LAMB(lr, weight_decay_rate=weight_decay)
     elif args.optimizer == 'sgd':
-        optimizer = tf.keras.optimizers.SGD(args.lr, momentum=0.9, nesterov=True)
+        optimizer = tf.keras.optimizers.SGD(lr, momentum=0.9, nesterov=True)
     elif args.optimizer == 'adam':
-        optimizer = tf.keras.optimizers.Adam(args.lr)
+        optimizer = tf.keras.optimizers.Adam(lr)
     else:
         raise Exception(f'unknown optimizer: {args.optimizer}')
     return optimizer
@@ -100,7 +102,7 @@ def class_transfer_learn(args, strategy, ds_id):
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
         with timed_execution():
-            result = LogisticRegression(C=(1 / args.linear_l2), n_jobs=-1, max_iter=1000).fit(train_feats, train_labels)
+            result = LogisticRegression(C=(1 / args.linear_wd), n_jobs=-1, max_iter=1000).fit(train_feats, train_labels)
         classifier.layers[0].kernel.assign(result.coef_.T)
         classifier.layers[0].bias.assign(result.intercept_)
 
