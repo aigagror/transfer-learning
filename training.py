@@ -41,7 +41,9 @@ def extract_features(class_ds, model):
 
 def get_optimizer(args, linear_training):
     if args.optimizer == 'lamb':
-        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=args.linear_l2 if linear_training else args.fine_l2)
+        weight_decay = args.linear_l2 if linear_training else args.fine_l2
+        logging.debug(f'{weight_decay} weight_decay')
+        optimizer = tfa.optimizers.LAMB(args.lr, weight_decay_rate=weight_decay)
     elif args.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(args.lr, momentum=0.9, nesterov=True)
     elif args.optimizer == 'adam':
@@ -120,7 +122,6 @@ def class_transfer_learn(args, strategy, ds_id):
     transfer_model.trainable = True
     with strategy.scope():
         optimizer = get_optimizer(args, linear_training=False)
-        logging.debug(optimizer)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=200)
 
     # Finetune the transfer model
