@@ -13,8 +13,8 @@ parser.add_argument('--data-dir', type=str, default='gs://aigagror/datasets')
 parser.add_argument('--linear-opt', choices=['lamb', 'lbfgs', 'sgdw', 'adamw'])
 parser.add_argument('--fine-opt', choices=['lamb', 'lbfgs', 'sgdw', 'adamw'])
 
-parser.add_argument('--epochs', type=int)
-parser.add_argument('--finetune-epoch', type=int)
+parser.add_argument('--linear-epochs', type=int)
+parser.add_argument('--fine-epochs', type=int)
 parser.add_argument('--epoch-steps', type=int)
 
 parser.add_argument('--linear-bsz', type=int)
