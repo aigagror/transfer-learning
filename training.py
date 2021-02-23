@@ -37,18 +37,16 @@ def extract_features(class_ds, model):
     return feat_ds
 
 
-def get_optimizer(args, linear_training):
-    lr = args.linear_lr if linear_training else args.fine_lr
-    weight_decay = args.linear_wd if linear_training else args.fine_wd
+def get_optimizer(optimizer, lr, weight_decay):
     logging.debug(f'{lr} lr, {weight_decay} weight_decay')
-    if args.optimizer == 'lamb':
+    if optimizer == 'lamb':
         optimizer = tfa.optimizers.LAMB(lr, weight_decay_rate=weight_decay)
-    elif args.optimizer == 'adamw':
+    elif optimizer == 'adamw':
         optimizer = tfa.optimizers.AdamW(weight_decay, lr)
-    elif args.optimizer == 'sgdw':
+    elif optimizer == 'sgdw':
         optimizer = tfa.optimizers.SGDW(weight_decay, lr, momentum=0.9, nesterov=True)
     else:
-        raise Exception(f'unknown optimizer: {args.optimizer}')
+        raise Exception(f'unknown optimizer: {optimizer}')
     return optimizer
 
 
@@ -95,7 +93,7 @@ def class_transfer_learn(args, strategy, ds_id):
     ]
 
     # Train classifier
-    if args.optimizer == 'lbfgs':
+    if args.linear_opt == 'lbfgs':
         logging.info('training classifier with LBFGS')
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
@@ -110,7 +108,7 @@ def class_transfer_learn(args, strategy, ds_id):
     else:
         logging.info('training classifier with gradient descent')
         with strategy.scope():
-            optimizer = get_optimizer(args, linear_training=True)
+            optimizer = get_optimizer(args.linear_opt, args.linear_lr, args.linear_wd)
             classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
         classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
                        validation_data=postprocess(ds_feat_val, args.linear_bsz),
@@ -121,7 +119,7 @@ def class_transfer_learn(args, strategy, ds_id):
     logging.info('fine-tuning whole model')
     transfer_model.trainable = True
     with strategy.scope():
-        optimizer = get_optimizer(args, linear_training=False)
+        optimizer = get_optimizer(args.fine_opt, args.fine_lr, args.fine_wd)
         transfer_model.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=200)
 
     # Finetune the transfer model
