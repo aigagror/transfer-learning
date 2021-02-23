@@ -4,6 +4,7 @@ import os
 import time
 from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -11,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 
 from data import load_ds, postprocess
 from models import load_feat_model
-import matplotlib.pyplot as plt
+
 
 def lr_scheduler(epoch, lr, args):
     # Epoch is 0-indexed
@@ -102,7 +103,7 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
         train_metrics, val_metrics = [], []
-        all_l2s = np.logspace(-6, 5, num=2)
+        all_l2s = np.logspace(-6, 5, num=45)
         for c in all_l2s:
             logging.info(f'{c:.3} l2')
             with timed_execution('LBFGS'):
@@ -115,13 +116,17 @@ def class_transfer_learn(args, strategy, ds_id):
         train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
 
         f, ax = plt.subplots(1, 2)
-        ax[0].set_xlabel('l2'),  ax[1].set_xlabel('l2')
+        ax[0].set_xlabel('l2'), ax[1].set_xlabel('l2')
 
+        ax[0].set_title('cross entropy')
         ax[0].plot(all_l2s, train_metrics[:, 0], label='train')
         ax[0].plot(all_l2s, val_metrics[:, 0], label='val')
 
+        ax[1].set_title('accuracy')
         ax[1].plot(all_l2s, train_metrics[:, 1], label='train')
         ax[1].plot(all_l2s, val_metrics[:, 1], label='val')
+
+        ax[0].legend(), ax[1].legend()
         plt.show()
     else:
         logging.info('training classifier with gradient descent')
