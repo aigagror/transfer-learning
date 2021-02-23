@@ -103,8 +103,8 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
         train_metrics, val_metrics = [], []
-        all_l2s = np.logspace(-6, 5, num=45)
-        lbfgs = LogisticRegression(warm_start=True)
+        all_l2s = np.logspace(-6, 5, num=12)
+        lbfgs = LogisticRegression(warm_start=True, tol=1e-3)
         for c in all_l2s:
             logging.info(f'{c:.3} l2')
             lbfgs.set_params(C=1/c)
