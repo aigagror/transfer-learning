@@ -104,7 +104,7 @@ def class_transfer_learn(args, strategy, ds_id):
 
         train_metrics, val_metrics = [], []
         all_l2s = np.logspace(-6, 5, num=12)
-        lbfgs = LogisticRegression(warm_start=True, tol=1e-3, multi_class='multinomial')
+        lbfgs = LogisticRegression(warm_start=True, multi_class='multinomial')
         for c in all_l2s:
             logging.info(f'{c:.3} l2')
             lbfgs.set_params(C=1/c)
