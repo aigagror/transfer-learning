@@ -102,7 +102,8 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
         train_metrics, val_metrics = [], []
-        for c in np.logspace(1e-6, 1e5, num=2):
+        all_l2s = np.logspace(1e-6, 1e5, num=2)
+        for c in all_l2s:
             logging.info(f'{c:.3} l2')
             with timed_execution('LBFGS'):
                 result = LogisticRegression(C=(1 / c), warm_start=True).fit(train_feats, train_labels)
@@ -114,11 +115,13 @@ def class_transfer_learn(args, strategy, ds_id):
         train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
 
         f, ax = plt.subplots(1, 2)
-        ax[0].plot(train_metrics[:, 0], label='train')
-        ax[0].plot(val_metrics[:, 0], label='val')
+        ax[0].set_xlabel('l2'),  ax[1].set_xlabel('l2')
 
-        ax[1].plot(train_metrics[:, 1], label='train')
-        ax[1].plot(val_metrics[:, 1], label='val')
+        ax[0].plot(all_l2s, train_metrics[:, 0], label='train')
+        ax[0].plot(all_l2s, val_metrics[:, 0], label='val')
+
+        ax[1].plot(all_l2s, train_metrics[:, 1], label='train')
+        ax[1].plot(all_l2s, val_metrics[:, 1], label='val')
         plt.show()
     else:
         logging.info('training classifier with gradient descent')
