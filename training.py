@@ -97,15 +97,16 @@ def class_transfer_learn(args, strategy, ds_id):
         logging.info('training classifier with LBFGS')
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
-        with timed_execution('LBFGS'):
-            result = LogisticRegression(C=(1 / args.linear_wd), warm_start=True).fit(train_feats, train_labels)
-        classifier.layers[0].kernel.assign(result.coef_.T)
-        classifier.layers[0].bias.assign(result.intercept_)
+        for c in np.logspace(1e-6, 1e5, num=45):
+            with timed_execution('LBFGS'):
+                result = LogisticRegression(C=(1 / c), warm_start=True).fit(train_feats, train_labels)
+            classifier.layers[0].kernel.assign(result.coef_.T)
+            classifier.layers[0].bias.assign(result.intercept_)
 
         with strategy.scope():
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
-        classifier.evaluate(postprocess(ds_feat_train, args.linear_bsz))
-        classifier.evaluate(postprocess(ds_feat_val, args.linear_bsz))
+        classifier.evaluate(postprocess(ds_feat_train, 1024))
+        classifier.evaluate(postprocess(ds_feat_val, 1024))
     else:
         logging.info('training classifier with gradient descent')
         with strategy.scope():
