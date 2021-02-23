@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 
 from data import load_ds, postprocess
 from models import load_feat_model
-
+import matplotlib.pyplot as plt
 
 def lr_scheduler(epoch, lr, args):
     # Epoch is 0-indexed
@@ -101,15 +101,25 @@ def class_transfer_learn(args, strategy, ds_id):
         with strategy.scope():
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
-        for c in np.logspace(1e-6, 1e5, num=45):
+        train_metrics, val_metrics = [], []
+        for c in np.logspace(1e-6, 1e5, num=2):
             logging.info(f'{c:.3} l2')
             with timed_execution('LBFGS'):
                 result = LogisticRegression(C=(1 / c), warm_start=True).fit(train_feats, train_labels)
             classifier.layers[0].kernel.assign(result.coef_.T)
             classifier.layers[0].bias.assign(result.intercept_)
 
-            classifier.evaluate(postprocess(ds_feat_train, 1024))
-            classifier.evaluate(postprocess(ds_feat_val, 1024))
+            train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024)))
+            val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
+        train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
+
+        f, ax = plt.subplots(1, 2)
+        ax[0].plot(train_metrics[:, 0], label='train')
+        ax[0].plot(val_metrics[:, 0], label='val')
+
+        ax[1].plot(train_metrics[:, 1], label='train')
+        ax[1].plot(val_metrics[:, 1], label='val')
+        plt.show()
     else:
         logging.info('training classifier with gradient descent')
         with strategy.scope():
