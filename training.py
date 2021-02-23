@@ -102,7 +102,7 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
         train_metrics, val_metrics = [], []
-        all_l2s = np.logspace(1e-6, 1e5, num=2)
+        all_l2s = np.logspace(-6, 5, num=2)
         for c in all_l2s:
             logging.info(f'{c:.3} l2')
             with timed_execution('LBFGS'):
