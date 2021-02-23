@@ -104,10 +104,12 @@ def class_transfer_learn(args, strategy, ds_id):
 
         train_metrics, val_metrics = [], []
         all_l2s = np.logspace(-6, 5, num=45)
+        lbfgs = LogisticRegression(warm_start=True)
         for c in all_l2s:
             logging.info(f'{c:.3} l2')
+            lbfgs.set_params(C=1/c)
             with timed_execution('LBFGS'):
-                result = LogisticRegression(C=(1 / c), warm_start=True).fit(train_feats, train_labels)
+                result = lbfgs.fit(train_feats, train_labels)
             classifier.layers[0].kernel.assign(result.coef_.T)
             classifier.layers[0].bias.assign(result.intercept_)
 
