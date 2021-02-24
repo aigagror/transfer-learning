@@ -105,7 +105,7 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
         train_metrics, val_metrics = [], []
-        all_Cs = np.logspace(-4, 4, num=20)
+        all_Cs = np.logspace(-1, 4, num=10)
         lbfgs = LogisticRegression(warm_start=True, multi_class='multinomial', n_jobs=-1)
         for unscaled_c in all_Cs:
             c = unscaled_c / len(train_feats)
@@ -121,15 +121,16 @@ def class_transfer_learn(args, strategy, ds_id):
         train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
 
         f, ax = plt.subplots(1, 2)
+        log_cs = np.log10(all_Cs)
         ax[0].set_xlabel('C'), ax[1].set_xlabel('C')
 
         ax[0].set_title('cross entropy')
-        ax[0].plot(all_Cs, train_metrics[:, 0], label='train')
-        ax[0].plot(all_Cs, val_metrics[:, 0], label='val')
+        ax[0].plot(log_cs, train_metrics[:, 0], label='train')
+        ax[0].plot(log_cs, val_metrics[:, 0], label='val')
 
         ax[1].set_title('accuracy')
-        ax[1].plot(all_Cs, train_metrics[:, 1], label='train')
-        ax[1].plot(all_Cs, val_metrics[:, 1], label='val')
+        ax[1].plot(log_cs, train_metrics[:, 1], label='train')
+        ax[1].plot(log_cs, val_metrics[:, 1], label='val')
 
         ax[0].legend(), ax[1].legend()
         plt.show()
