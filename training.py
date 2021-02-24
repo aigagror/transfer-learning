@@ -105,7 +105,7 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
         train_metrics, val_metrics = [], []
-        all_Cs = np.logspace(0, 6, num=10)
+        all_Cs = np.logspace(2, 6, num=10)
         lbfgs = LogisticRegression(warm_start=True, multi_class='multinomial', n_jobs=-1)
         for unscaled_c in all_Cs:
             c = unscaled_c / len(train_feats)
