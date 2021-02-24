@@ -121,7 +121,7 @@ def class_transfer_learn(args, strategy, ds_id):
         train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
 
         f, ax = plt.subplots(1, 2)
-        ax[0].set_xlabel('l2'), ax[1].set_xlabel('l2')
+        ax[0].set_xlabel('C'), ax[1].set_xlabel('C')
 
         ax[0].set_title('cross entropy')
         ax[0].plot(all_Cs, train_metrics[:, 0], label='train')
