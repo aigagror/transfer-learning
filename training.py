@@ -1,15 +1,12 @@
 import contextlib
 import logging
-import os
 import time
-from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
 from sklearn.linear_model import LogisticRegression
-from sklearn import preprocessing
 
 from data import load_ds, postprocess
 from models import load_feat_model
@@ -84,16 +81,6 @@ def class_transfer_learn(args, strategy, ds_id):
     # Extract features
     ds_feat_train, ds_feat_val = extract_features(ds_train_no_augment, feat_model), extract_features(ds_val, feat_model)
 
-    # Setup up training callbacks
-    task_path = os.path.join(args.downstream_path, ds_id)
-    callbacks = [
-        tf.keras.callbacks.TensorBoard(task_path, write_graph=False, profile_batch=0),
-        tf.keras.callbacks.LearningRateScheduler(
-            partial(lr_scheduler, args=args),
-            verbose=1 if args.log_level == 'DEBUG' else 0
-        )
-    ]
-
     # Train classifier
     if args.linear_opt == 'lbfgs':
         logging.info('training classifier with LBFGS')
@@ -136,13 +123,15 @@ def class_transfer_learn(args, strategy, ds_id):
         plt.show()
     else:
         logging.info('training classifier with gradient descent')
-        with strategy.scope():
-            optimizer = get_optimizer(args.linear_opt, args.linear_lr, args.linear_wd)
-            classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
-        classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
-                       validation_data=postprocess(ds_feat_val, args.linear_bsz),
-                       initial_epoch=0, epochs=args.linear_epochs,
-                       steps_per_epoch=args.epoch_steps, callbacks=callbacks)
+        for weight_decay in np.logspace(0, -3):
+            with strategy.scope():
+                optimizer = get_optimizer(args.linear_opt, args.linear_lr, weight_decay)
+                classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
+            logging.info(f'{weight_decay:.3} weight decay')
+            classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
+                           validation_data=postprocess(ds_feat_val, args.linear_bsz),
+                           initial_epoch=0, epochs=args.linear_epochs,
+                           steps_per_epoch=args.epoch_steps)
 
     # Compile the transfer model
     logging.info('fine-tuning whole model')
@@ -157,4 +146,4 @@ def class_transfer_learn(args, strategy, ds_id):
         transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
                            validation_data=postprocess(ds_val, args.fine_bsz),
                            initial_epoch=args.linear_epochs, epochs=args.linear_epochs + args.fine_epochs,
-                           steps_per_epoch=args.epoch_steps, callbacks=callbacks)
+                           steps_per_epoch=args.epoch_steps)
