@@ -153,7 +153,8 @@ def class_transfer_learn(args, strategy, ds_id):
 
     # Finetune the transfer model
     ds_train, _ = load_ds(args, ds_id, 'train', augment=True)
+    initial_epoch = args.linear_epochs or 0
     transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
                        validation_data=postprocess(ds_val, args.fine_bsz),
-                       initial_epoch=args.linear_epochs, epochs=args.linear_epochs + args.fine_epochs,
+                       initial_epoch=initial_epoch, epochs=initial_epoch + args.fine_epochs,
                        steps_per_epoch=args.epoch_steps, callbacks=callbacks)
