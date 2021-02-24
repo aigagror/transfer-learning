@@ -115,8 +115,9 @@ def class_transfer_learn(args, strategy, ds_id):
             lbfgs.set_params(C=1/c)
             with timed_execution('LBFGS'):
                 result = lbfgs.fit(train_feats, train_labels)
-            classifier.layers[0].kernel.assign(result.coef_.T * scaler.scale_)
-            classifier.layers[0].bias.assign(result.intercept_ - np.matmul(result.coef_, scaler.mean_) * scaler.scale_)
+            scaled_kernel = result.coef_ * scaler.scale_[np.newaxis]
+            classifier.layers[0].kernel.assign(scaled_kernel.T)
+            classifier.layers[0].bias.assign(result.intercept_ - np.matmul(scaled_kernel, scaler.mean_))
 
             train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024)))
             val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
