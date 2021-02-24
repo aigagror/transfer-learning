@@ -123,7 +123,7 @@ def class_transfer_learn(args, strategy, ds_id):
         plt.show()
     else:
         logging.info('training classifier with gradient descent')
-        for weight_decay in np.logspace(0, -5):
+        for weight_decay in np.logspace(-1, -5):
             with strategy.scope():
                 optimizer = get_optimizer(args.linear_opt, args.linear_lr, weight_decay)
                 classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
