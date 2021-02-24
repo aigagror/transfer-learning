@@ -81,6 +81,8 @@ def class_transfer_learn(args, strategy, ds_id):
     # Extract features
     ds_feat_train, ds_feat_val = extract_features(ds_train_no_augment, feat_model), extract_features(ds_val, feat_model)
 
+    train_metrics, val_metrics = [], []
+
     # Train classifier
     if args.linear_opt == 'lbfgs':
         logging.info('training classifier with LBFGS')
@@ -91,10 +93,9 @@ def class_transfer_learn(args, strategy, ds_id):
         with strategy.scope():
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
-        train_metrics, val_metrics = [], []
-        all_Cs = np.logspace(2, 6, num=10)
+        all_regs = np.logspace(2, 6, num=5)
         lbfgs = LogisticRegression(warm_start=True, multi_class='multinomial', n_jobs=-1)
-        for unscaled_c in all_Cs:
+        for unscaled_c in all_regs:
             c = unscaled_c / len(train_feats)
             logging.info(f'{unscaled_c:.3} unscaled C, {c:.3} scaled C')
             lbfgs.set_params(C=c)
@@ -105,33 +106,36 @@ def class_transfer_learn(args, strategy, ds_id):
 
             train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024)))
             val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
-        train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
-
-        f, ax = plt.subplots(1, 2)
-        log_cs = np.log10(all_Cs)
-        ax[0].set_xlabel('C'), ax[1].set_xlabel('C')
-
-        ax[0].set_title('cross entropy')
-        ax[0].plot(log_cs, train_metrics[:, 0], label='train')
-        ax[0].plot(log_cs, val_metrics[:, 0], label='val')
-
-        ax[1].set_title('accuracy')
-        ax[1].plot(log_cs, train_metrics[:, 1], label='train')
-        ax[1].plot(log_cs, val_metrics[:, 1], label='val')
-
-        ax[0].legend(), ax[1].legend()
-        plt.show()
     else:
         logging.info('training classifier with gradient descent')
-        for weight_decay in np.logspace(-1, -5):
+        all_regs = np.logspace(-1, -5)
+        for weight_decay in all_regs:
             with strategy.scope():
                 optimizer = get_optimizer(args.linear_opt, args.linear_lr, weight_decay)
                 classifier.compile(optimizer, loss=ce_loss, metrics='acc', steps_per_execution=100)
             logging.info(f'{weight_decay:.3} weight decay')
             classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
-                           validation_data=postprocess(ds_feat_val, args.linear_bsz),
                            initial_epoch=0, epochs=args.linear_epochs,
                            steps_per_epoch=args.epoch_steps)
+            train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024)))
+            val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
+
+    # Plot metrics over regularization
+    train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
+    f, ax = plt.subplots(1, 2)
+    log_cs = np.log10(all_regs)
+    ax[0].set_xlabel('regularization'), ax[1].set_xlabel('regularization')
+
+    ax[0].set_title('cross entropy')
+    ax[0].plot(log_cs, train_metrics[:, 0], label='train')
+    ax[0].plot(log_cs, val_metrics[:, 0], label='val')
+
+    ax[1].set_title('accuracy')
+    ax[1].plot(log_cs, train_metrics[:, 1], label='train')
+    ax[1].plot(log_cs, val_metrics[:, 1], label='val')
+
+    ax[0].legend(), ax[1].legend()
+    plt.show()
 
     # Compile the transfer model
     logging.info('fine-tuning whole model')
