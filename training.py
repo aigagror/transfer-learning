@@ -100,24 +100,20 @@ def class_transfer_learn(args, strategy, ds_id):
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
         logging.info(f'feats: {np.min(train_feats):.3} min, {np.max(train_feats):.3} max')
-        logging.info('standardizing train features')
-        scaler = preprocessing.StandardScaler().fit(train_feats)
-        train_feats = scaler.transform(train_feats)
 
         with strategy.scope():
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
         train_metrics, val_metrics = [], []
-        all_l2s = np.logspace(-6, 5, num=12)
+        all_l2s = np.logspace(-4, 4, num=45)
         lbfgs = LogisticRegression(warm_start=True, multi_class='multinomial')
         for c in all_l2s:
             logging.info(f'{c:.3} l2')
             lbfgs.set_params(C=1/c)
             with timed_execution('LBFGS'):
                 result = lbfgs.fit(train_feats, train_labels)
-            scaled_kernel = result.coef_ * scaler.scale_[np.newaxis]
-            classifier.layers[0].kernel.assign(scaled_kernel.T)
-            classifier.layers[0].bias.assign(result.intercept_ - np.matmul(scaled_kernel, scaler.mean_))
+            classifier.layers[0].kernel.assign(result.coef_.T)
+            classifier.layers[0].bias.assign(result.intercept_)
 
             train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024)))
             val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
