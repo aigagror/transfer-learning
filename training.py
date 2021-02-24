@@ -99,7 +99,7 @@ def class_transfer_learn(args, strategy, ds_id):
         logging.info('training classifier with LBFGS')
         train_feats, train_labels = zip(*ds_feat_train.batch(1024).as_numpy_iterator())
         train_feats, train_labels = np.concatenate(train_feats, axis=0), np.concatenate(train_labels, axis=0)
-        logging.info(f'feats: {np.min(train_feats):.3} min, {np.max(train_feats):.3} max')
+        logging.info(f'feats: {tf.reduce_min(train_feats):.3} min, {tf.reduce_max(train_feats):.3} max')
 
         with strategy.scope():
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
