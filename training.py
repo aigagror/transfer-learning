@@ -108,7 +108,7 @@ def class_transfer_learn(args, strategy, ds_id):
             val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
     else:
         logging.info('training classifier with gradient descent')
-        all_regs = np.logspace(-1, -5)
+        all_regs = np.logspace(-1, -5, num=5)
         for weight_decay in all_regs:
             with strategy.scope():
                 optimizer = get_optimizer(args.linear_opt, args.linear_lr, weight_decay)
