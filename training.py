@@ -27,7 +27,7 @@ def timed_execution(fn_name):
     t0 = time.time()
     yield
     dt = time.time() - t0
-    logging.info(f'{fn_name} took {dt} seconds')
+    logging.info(f'{fn_name} took {dt:.3} seconds')
 
 
 def extract_features(class_ds, model):
