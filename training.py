@@ -138,7 +138,7 @@ def class_transfer_learn(args, strategy, ds_id):
     ax[1].plot(log_cs, val_metrics[:, 1], label='val')
 
     ax[0].legend(), ax[1].legend()
-    plt.show()
+    plt.tight_layout(), plt.show()
 
     logging.info(f'{ds_id} -> {max(val_metrics[:, 1]) * 100:.3}%, {log_cs[np.argmax(val_metrics[:, 1])]:.3} log wd')
 
