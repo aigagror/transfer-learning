@@ -124,6 +124,7 @@ def class_transfer_learn(args, strategy, ds_id):
     # Plot metrics over regularization
     train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
     f, ax = plt.subplots(1, 2)
+    f.set_size_inches(6, 3)
     log_cs = np.log10(all_regs)
     ax[0].set_xlabel('regularization'), ax[1].set_xlabel('regularization')
 
