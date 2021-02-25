@@ -118,8 +118,8 @@ def class_transfer_learn(args, strategy, ds_id):
             classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
                            initial_epoch=0, epochs=args.linear_epochs,
                            steps_per_epoch=args.epoch_steps, verbose=0)
-            train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024)))
-            val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
+            train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024), verbose=0))
+            val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024), verbose=0))
 
     # Plot metrics over regularization
     train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
