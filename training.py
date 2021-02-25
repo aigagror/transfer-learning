@@ -139,6 +139,8 @@ def class_transfer_learn(args, strategy, ds_id):
     ax[0].legend(), ax[1].legend()
     plt.show()
 
+    logging.info(f'{ds_id} -> {max(val_metrics[:, 1]):.3}%')
+
     # Compile the transfer model
     logging.info('fine-tuning whole model')
     if args.fine_epochs > 0:
