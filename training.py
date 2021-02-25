@@ -117,7 +117,7 @@ def class_transfer_learn(args, strategy, ds_id):
             logging.info(f'{weight_decay:.3} weight decay')
             classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
                            initial_epoch=0, epochs=args.linear_epochs,
-                           steps_per_epoch=args.epoch_steps)
+                           steps_per_epoch=args.epoch_steps, verbose=0)
             train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024)))
             val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
 
