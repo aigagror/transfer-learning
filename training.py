@@ -143,8 +143,8 @@ def class_transfer_learn(args, strategy, ds_id):
     logging.info(f'{ds_id} -> {max(val_metrics[:, 1]) * 100:.3}%, {log_cs[np.argmax(val_metrics[:, 1])]:.3} log wd')
 
     # Compile the transfer model
-    logging.info('fine-tuning whole model')
     if args.fine_epochs > 0:
+        logging.info('fine-tuning whole model')
         transfer_model.trainable = True
         with strategy.scope():
             optimizer = get_optimizer(args.fine_opt, args.fine_lr, args.fine_wd)
