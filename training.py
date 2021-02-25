@@ -93,7 +93,8 @@ def class_transfer_learn(args, strategy, ds_id):
         with strategy.scope():
             classifier.compile(loss=ce_loss, metrics='acc', steps_per_execution=100)
 
-        all_regs = np.logspace(2, 6, num=5)
+        all_Cs = -np.array(args.log_wds)
+        all_regs = np.logspace(min(all_Cs), max(all_Cs), num=args.grid_points)
         lbfgs = LogisticRegression(warm_start=True, multi_class='multinomial', n_jobs=-1)
         for unscaled_c in all_regs:
             c = unscaled_c / len(train_feats)
@@ -108,7 +109,7 @@ def class_transfer_learn(args, strategy, ds_id):
             val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024)))
     else:
         logging.info('training classifier with gradient descent')
-        all_regs = np.logspace(-1, -5, num=5)
+        all_regs = np.logspace(max(args.log_wds), min(args.log_wds), num=args.grid_points)
         for weight_decay in all_regs:
             with strategy.scope():
                 optimizer = get_optimizer(args.linear_opt, args.linear_lr, weight_decay)

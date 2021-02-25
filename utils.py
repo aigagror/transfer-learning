@@ -20,7 +20,8 @@ parser.add_argument('--epoch-steps', type=int)
 parser.add_argument('--linear-bsz', type=int)
 parser.add_argument('--fine-bsz', type=int)
 
-parser.add_argument('--linear-wd', type=float)
+parser.add_argument('--log-wds', type=int, nargs=2)
+parser.add_argument('--grid-points', type=int)
 parser.add_argument('--fine-wd', type=float)
 
 parser.add_argument('--linear-lr', type=float)
