@@ -50,8 +50,9 @@ def get_optimizer(optimizer, lr, weight_decay):
 
 
 def class_transfer_learn(args, strategy, ds_id):
-    # Load dataset
+    verbosity = int(args.log_level == 'DEBUG')
 
+    # Load dataset
     ds_train_no_augment, info = load_ds(args, ds_id, 'train')
     ds_val = None
     for split in ['test', 'validation']:
@@ -117,9 +118,9 @@ def class_transfer_learn(args, strategy, ds_id):
             logging.info(f'{weight_decay:.3} weight decay')
             classifier.fit(postprocess(ds_feat_train, args.linear_bsz, repeat=True),
                            initial_epoch=0, epochs=args.linear_epochs,
-                           steps_per_epoch=args.epoch_steps, verbose=0)
-            train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024), verbose=0))
-            val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024), verbose=0))
+                           steps_per_epoch=args.epoch_steps, verbose=verbosity)
+            train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024), verbose=verbosity))
+            val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024), verbose=verbosity))
 
     # Plot metrics over regularization
     train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
@@ -154,4 +155,4 @@ def class_transfer_learn(args, strategy, ds_id):
         transfer_model.fit(postprocess(ds_train, args.fine_bsz, repeat=True),
                            validation_data=postprocess(ds_val, args.fine_bsz),
                            initial_epoch=args.linear_epochs, epochs=args.linear_epochs + args.fine_epochs,
-                           steps_per_epoch=args.epoch_steps, verbose=0)
+                           steps_per_epoch=args.epoch_steps, verbose=verbosity)
