@@ -121,6 +121,7 @@ def class_transfer_learn(args, strategy, ds_id):
                                steps_per_epoch=args.epoch_steps, verbose=verbosity)
                 train_metrics.append(classifier.evaluate(postprocess(ds_feat_train, 1024), verbose=verbosity))
                 val_metrics.append(classifier.evaluate(postprocess(ds_feat_val, 1024), verbose=verbosity))
+                logging.debug(f'{weight_decay} wd, {train_metrics[-1][1]:.3}/{val_metrics[-1][1]:.3} train/val acc')
 
     # Plot metrics over regularization
     train_metrics, val_metrics = np.array(train_metrics), np.array(val_metrics)
